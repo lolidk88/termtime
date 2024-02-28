@@ -8,15 +8,17 @@ import {
 import { randomUUID } from "crypto";
 import open from "open";
 import { LocalStorage } from "node-localstorage";
+import { sleep } from "bun";
 
 const STORAGE_LOCATION = "./storage";
 const SERVER = "https://auth.sbhs.net.au/";
 const CLIENT_ID = "01hqkmmk28esk8rqyh4qka52se";
 const AUTH_ENDPOINT = "https://auth.sbhs.net.au/authorize";
 const TOKEN_ENDPOINT = "https://auth.sbhs.net.au/token";
-const REDIRECT_URI = "https://redirectmeto.com/http://localhost:6459";
-const SCOPES = ["all-ro"];
 const PORT = 6459;
+const REDIRECT_URI = `https://redirectmeto.com/http://localhost:${PORT}`;
+const SCOPES = ["all-ro"];
+const CHECK_FOR_TOKEN_INTERVAL = 1000;
 
 const localStorage = new LocalStorage(STORAGE_LOCATION);
 const client = new OAuth2Client({
@@ -34,6 +36,7 @@ async function login() {
 		codeVerifier,
 		scope: SCOPES,
 	});
+	let tokenHasBeenSet = false;
 	localStorage.setItem("codeVerifier", codeVerifier);
 	localStorage.setItem("state", state);
 	Bun.serve({
@@ -60,11 +63,12 @@ async function login() {
 					},
 				);
 				localStorage.setItem("token", JSON.stringify(token));
+				tokenHasBeenSet = true;
 			}
 			return new Response("you may now return to the terminal.");
 		},
 	});
-	open(authorizeUri);
+	await open(authorizeUri);
 }
 
 async function logout() {
@@ -74,11 +78,7 @@ async function logout() {
 
 function getToken() {
 	const tokenValue = localStorage.getItem("token");
-	if (!tokenValue) {
-		throw new Error("could not find tokenValue");
-	}
-	const token = JSON.parse(tokenValue);
-	return token;
+	return tokenValue === null ? null : JSON.parse(tokenValue);
 }
 
 export const fetchWrapper = new OAuth2Fetch({
