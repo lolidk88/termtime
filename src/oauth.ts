@@ -1,3 +1,5 @@
+// adapted from https://hamzah.syedahmed.net/posts/oauth-pkce-client, and @badgateway/oauth2-client docs.
+
 import {
 	OAuth2Client,
 	generateCodeVerifier,
